@@ -6,7 +6,7 @@ tagline: false
 index: false
 breadcrumb: false
 sidebar: false
-photoswipe: false 
+photoSwipe: false 
 icon: camera
 containerClass: fancy-container
 ---

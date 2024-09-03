@@ -2,10 +2,10 @@
 home: true
 layout: BlogHome
 icon: home
-title: Blog Home
+title: Home
 heroImage: https://theme-hope-assets.vuejs.press/logo.svg
-heroText: The name of your blog
-tagline: You can put your slogan here
+heroText: HOME
+tagline: false
 heroFullScreen: true
 projects:
   - icon: project
@@ -38,11 +38,5 @@ projects:
     desc: Detailed description of this custom item
     link: https://link.to.your.friend
 
-footer: customize your footer text
+footer: Follow the light
 ---
-
-This is a blog home page demo.
-
-To use this layout, you should set both `layout: BlogHome` and `home: true` in the page front matter.
-
-For related configuration docs, please see [blog homepage](https://theme-hope.vuejs.press/guide/blog/home.html).

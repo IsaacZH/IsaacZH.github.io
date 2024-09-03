@@ -7,7 +7,7 @@ export default hopeTheme({
   hostname: "https://mister-hope.github.io",
 
   author: {
-    name: "Mr.Hope",
+    name: "Isaac",
     url: "https://mister-hope.com",
   },
 
@@ -25,55 +25,22 @@ export default hopeTheme({
   // sidebar
   sidebar,
 
-  footer: "Default footer",
+  footer: "Follow the light",
 
-  displayFooter: true,
+  displayFooter: false,
 
-  encrypt: {
-    config: {
-      "/demo/encrypt.html": ["1234"],
-    },
-  },
 
   blog: {
-    description: "A FrontEnd programmer",
+    description: "welcome",
     intro: "/intro.html",
     medias: {
-      Baidu: "https://example.com",
-      BiliBili: "https://example.com",
-      Bitbucket: "https://example.com",
-      Dingding: "https://example.com",
-      Discord: "https://example.com",
-      Dribbble: "https://example.com",
-      Email: "mailto:info@example.com",
-      Evernote: "https://example.com",
-      Facebook: "https://example.com",
-      Flipboard: "https://example.com",
-      Gitee: "https://example.com",
-      GitHub: "https://example.com",
-      Gitlab: "https://example.com",
-      Gmail: "mailto:info@example.com",
-      Instagram: "https://example.com",
-      Lark: "https://example.com",
-      Lines: "https://example.com",
-      Linkedin: "https://example.com",
-      Pinterest: "https://example.com",
-      Pocket: "https://example.com",
-      QQ: "https://example.com",
-      Qzone: "https://example.com",
-      Reddit: "https://example.com",
-      Rss: "https://example.com",
-      Steam: "https://example.com",
-      Twitter: "https://example.com",
-      Wechat: "https://example.com",
-      Weibo: "https://example.com",
-      Whatsapp: "https://example.com",
-      Youtube: "https://example.com",
-      Zhihu: "https://example.com",
-      VuePressThemeHope: {
-        icon: "https://theme-hope-assets.vuejs.press/logo.svg",
-        link: "https://theme-hope.vuejs.press",
-      },
+      BiliBili: "https://space.bilibili.com/39337955",
+      Email: "1812924685@qq.com",
+      GitHub: "https://github.com/IsaacZH",
+      Gmail: "isaac.zhou35@gmail.com",
+      Instagram: "https://www.instagram.com/zhou.isaac/?next=%2F",
+      Steam: "https://steamcommunity.com/profiles/76561198373825204/",
+      Youtube: "https://www.youtube.com/@user-dc6pn4ec9w",
     },
   },
 
@@ -86,7 +53,6 @@ export default hopeTheme({
 
   plugins: {
     blog: true,
-    photoSwipe: false,
     // Install @waline/client before enabling it
     // Note: This is for testing ONLY!
     // You MUST generate and use your own comment service in production.
