@@ -13,9 +13,9 @@ export default hopeTheme({
 
   iconAssets: "fontawesome-with-brands",
 
-  logo: "https://theme-hope-assets.vuejs.press/logo.svg",
+  logo: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/batman_yellow_logo.png",
 
-  repo: "vuepress-theme-hope/vuepress-theme-hope",
+  repo: "https://github.com/IsaacZH",
 
   docsDir: "src",
 
@@ -32,6 +32,7 @@ export default hopeTheme({
 
   blog: {
     description: "welcome",
+    avatar: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/marshmello_logo.png",
     intro: "/intro.html",
     medias: {
       BiliBili: "https://space.bilibili.com/39337955",

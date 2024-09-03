@@ -1,1 +1,8 @@
 // place your custom styles here
+.vp-blog-hero-title {
+    font-size: 4rem; // 更改字体大小
+    color: #fff; // 更改字体颜色
+    text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5); // 添加阴影
+    font-family: 'Arial', sans-serif; // 更改字体
+    transition: transform 0.25s ease-in-out 0.08s, opacity 0.25s ease-in-out 0.08s; // 保留过渡效果
+  }
