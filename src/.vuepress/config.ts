@@ -3,7 +3,7 @@ import { defineUserConfig } from "vuepress";
 import theme from "./theme.js";
 
 export default defineUserConfig({
-  base: "/IsaacZH.github.io/",
+  base: "/",
 
   lang: "en-US",
   title: "Isaac",
