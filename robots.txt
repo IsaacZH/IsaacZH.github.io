@@ -2,4 +2,4 @@
 User-agent:*
 Disallow:
 
-Sitemap: https://IsaacZH.github.io/sitemap.xml
+Sitemap: https://IsaacZH.github.io/IsaacZH.github.io/sitemap.xml
