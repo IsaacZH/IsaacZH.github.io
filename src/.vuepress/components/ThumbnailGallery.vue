@@ -89,7 +89,7 @@
                     decoding="async"
                     @load="rememberImageSize(item.id, $event)"
                 />
-                <span class="chip">{{ item.requiredMeta.year }} · {{ item.requiredMeta.medium }}</span>
+
             </button>
         </div>
 
@@ -532,16 +532,6 @@ async function openPreview(index) {
     transform: scale(1.02);
 }
 
-.chip {
-    position: absolute;
-    left: 8px;
-    bottom: 8px;
-    background: rgba(0, 0, 0, 0.5);
-    color: #f4f4f4;
-    font-size: 12px;
-    border-radius: 999px;
-    padding: 2px 8px;
-}
 
 .load-more-wrap {
     display: flex;

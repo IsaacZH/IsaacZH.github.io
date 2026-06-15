@@ -117,5 +117,5 @@ export const galleryItems = dedupeById([...normalizedGenerated, ...normalizedSee
 );
 
 export const galleryConfig = {
-  defaultPageSize: 6,
+  defaultPageSize: 15,
 };

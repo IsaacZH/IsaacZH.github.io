@@ -192,13 +192,14 @@ async function main() {
 
     if (sidecar && typeof sidecar === "object") {
       item.alt = sidecar.alt || item.alt;
-        const mergedTags = normalizeTags([
-          ...normalizeTags(item.tags),
+        const sidecarTags = normalizeTags([
           ...normalizeTags(sidecar.tags),
           ...normalizeTags(sidecar.category),
         ]);
 
-        item.tags = mergedTags.length > 0 ? mergedTags : item.tags;
+        if (sidecarTags.length > 0) {
+          item.tags = sidecarTags;
+        }
       const sidecarRequired = sidecar.requiredMeta || {};
       const rawYear = sidecarRequired.year || sidecar.year || inferYear(sidecar.createdAt || item.createdAt);
       const rawMedium = sidecarRequired.medium || sidecar.medium || (item.tags.includes("film") ? "film" : "digital");
