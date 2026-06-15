@@ -1,6 +1,6 @@
 import { generatedGalleryData } from "./gallery.generated.js";
 import { seedGalleryItems } from "./gallery-seed.js";
-import type { CaptureMedium, GalleryItem } from "./gallery-schema.js";
+import type { CaptureMedium, GalleryItem, PhotoTone } from "./gallery-schema.js";
 
 const FALLBACK_DATE = "1970-01-01";
 
@@ -48,6 +48,10 @@ function toCaptureMedium(value: unknown): CaptureMedium {
   return String(value).toLowerCase() === "film" ? "film" : "digital";
 }
 
+function toPhotoTone(value: unknown): PhotoTone {
+  return String(value).toLowerCase() === "bw" ? "bw" : "color";
+}
+
 function inferYear(createdAt: string | undefined): number {
   const date = createdAt ? new Date(createdAt) : null;
   const year = date ? date.getFullYear() : NaN;
@@ -61,6 +65,7 @@ function normalizeRequiredMeta(item: Partial<GalleryItem>, normalizedTags: strin
   return {
     year: Number(source.year) || inferYear(item.createdAt),
     medium: toCaptureMedium(source.medium || mediumFromTags),
+    tone: toPhotoTone(source.tone),
   };
 }
 

@@ -52,6 +52,11 @@
                     <option value="digital">Digital</option>
                     <option value="film">Film</option>
                 </select>
+                <select v-model="selectedTone" class="sort-select" aria-label="Filter by tone">
+                    <option value="all">Color &amp; B&amp;W</option>
+                    <option value="color">Color</option>
+                    <option value="bw">B&amp;W</option>
+                </select>
                 <select v-model="sortBy" class="sort-select" aria-label="Sort images">
                     <option value="newest">Newest</option>
                     <option value="oldest">Oldest</option>
@@ -66,6 +71,7 @@
             <span v-if="selectedTags.length">tags {{ selectedTags.join(', ') }}</span>
             <span v-if="selectedYear !== 'All'">year {{ selectedYear }}</span>
             <span v-if="selectedMedium !== 'all'">{{ selectedMedium }}</span>
+            <span v-if="selectedTone !== 'all'">{{ selectedTone === 'bw' ? 'B&amp;W' : 'Color' }}</span>
         </div>
 
         <div class="gallery-grid">
@@ -104,6 +110,7 @@ const items = galleryItems;
 const selectedTags = ref([]);
 const selectedYear = ref("All");
 const selectedMedium = ref("all");
+const selectedTone = ref("all");
 const searchQuery = ref("");
 const sortBy = ref("newest");
 const pageSize = galleryConfig.defaultPageSize;
@@ -161,9 +168,10 @@ const filteredItems = computed(() => {
             selectedTags.value.length === 0 || selectedTags.value.some((tag) => item.tags.includes(tag));
         const byYear = selectedYear.value === "All" || String(item.requiredMeta.year) === selectedYear.value;
         const byMedium = selectedMedium.value === "all" || item.requiredMeta.medium === selectedMedium.value;
+        const byTone = selectedTone.value === "all" || (item.requiredMeta.tone || "color") === selectedTone.value;
 
         if (!query) {
-            return byTag && byYear && byMedium;
+            return byTag && byYear && byMedium && byTone;
         }
 
         const searchable = [
@@ -176,7 +184,7 @@ const filteredItems = computed(() => {
             .join(" ")
             .toLowerCase();
 
-        return byTag && byYear && byMedium && searchable.includes(query);
+        return byTag && byYear && byMedium && byTone && searchable.includes(query);
     });
 
     list = [...list].sort((a, b) => {
@@ -200,7 +208,7 @@ const filteredItems = computed(() => {
 const visibleItems = computed(() => filteredItems.value.slice(0, visibleCount.value));
 const hasMore = computed(() => visibleItems.value.length < filteredItems.value.length);
 
-watch([selectedTags, selectedYear, selectedMedium, searchQuery, sortBy], () => {
+watch([selectedTags, selectedYear, selectedMedium, selectedTone, searchQuery, sortBy], () => {
     visibleCount.value = pageSize;
     tryRestoreFromHash();
 });

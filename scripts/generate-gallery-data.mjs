@@ -89,6 +89,10 @@ function toCaptureMedium(value) {
   return String(value).toLowerCase() === "film" ? "film" : "digital";
 }
 
+function toPhotoTone(value) {
+  return String(value).toLowerCase() === "bw" ? "bw" : "color";
+}
+
 function inferYear(createdAt) {
   const date = createdAt ? new Date(createdAt) : null;
   const year = date ? date.getFullYear() : NaN;
@@ -150,6 +154,7 @@ function buildItem(absPath, index, stat) {
     requiredMeta: {
       year: inferYear(new Date(stat.mtimeMs).toISOString()),
       medium: folderTag.includes("film") ? "film" : "digital",
+      tone: "color",
     },
     tags: inferTags(base, folderTag),
     createdAt: new Date(stat.mtimeMs).toISOString().slice(0, 10),
@@ -197,10 +202,12 @@ async function main() {
       const sidecarRequired = sidecar.requiredMeta || {};
       const rawYear = sidecarRequired.year || sidecar.year || inferYear(sidecar.createdAt || item.createdAt);
       const rawMedium = sidecarRequired.medium || sidecar.medium || (item.tags.includes("film") ? "film" : "digital");
+      const rawTone = sidecarRequired.tone || sidecar.tone || "color";
 
       item.requiredMeta = {
         year: Number(rawYear) || inferYear(item.createdAt),
         medium: toCaptureMedium(rawMedium),
+        tone: toPhotoTone(rawTone),
       };
       item.facets = {
         ...item.facets,

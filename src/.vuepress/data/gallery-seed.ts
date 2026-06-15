@@ -6,7 +6,7 @@ export const seedGalleryItems: GalleryItem[] = [
     slug: "photo-1-portrait",
     src: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/000022.JPG",
     alt: "Photo 1",
-    requiredMeta: { year: 2024, medium: "digital" },
+    requiredMeta: { year: 2024, medium: "film" },
     tags: ["pet"],
     createdAt: "2024-01-09",
     width: 1600,
@@ -18,7 +18,7 @@ export const seedGalleryItems: GalleryItem[] = [
     src: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/_MG_0216-Pano.jpg",
     alt: "Photo 2",
     requiredMeta: { year: 2024, medium: "digital" },
-    tags: ["city"],
+    tags: ["landscape"],
     createdAt: "2024-02-04",
     width: 2000,
     height: 900,
@@ -88,5 +88,5 @@ export const seedGalleryItems: GalleryItem[] = [
     createdAt: "2024-08-24",
     width: 1600,
     height: 1200,
-  },
+  }
 ];

@@ -1,8 +1,10 @@
 export type CaptureMedium = "digital" | "film";
+export type PhotoTone = "color" | "bw";
 
 export interface RequiredMeta {
   year: number;
   medium: CaptureMedium;
+  tone: PhotoTone;
 }
 
 export interface GalleryItem {

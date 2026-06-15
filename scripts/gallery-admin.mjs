@@ -73,9 +73,11 @@ async function savePhoto(relPath, meta) {
 async function parseSeedFile() {
   let raw;
   try { raw = await fs.readFile(seedPath, 'utf8'); } catch { return { raw: '', start: -1, end: -1, items: [] }; }
-  const start = raw.indexOf('[');
+  // Find the array literal `= [` not the type annotation `GalleryItem[]`
+  const eqBracket = raw.indexOf('= [');
+  const start = eqBracket >= 0 ? eqBracket + 2 : -1;
   const end = raw.lastIndexOf(']');
-  if (start < 0 || end < 0) return { raw, start, end, items: [] };
+  if (start < 0 || end < 0 || end <= start) return { raw, start, end, items: [] };
   try {
     const items = new Function('return ' + raw.slice(start, end + 1))();
     return { raw, start, end, items };
@@ -368,6 +370,11 @@ function renderEditor(){
         ['digital','film'].map(function(v){return '<option value="'+v+'"'+(((req.medium||'digital')===v)?' selected':'')+'>'+v+'</option>';}).join('')+
       '</select></div>'+
     '</div>'+
+    '<div class="row">'+
+      '<div class="f"><label>Tone</label><select id="tone">'+
+        ['color','bw'].map(function(v){return '<option value="'+v+'"'+(((req.tone||'color')===v)?' selected':'')+'>'+v+'</option>';}).join('')+
+      '</select></div>'+
+    '</div>'+
     (isSeed
       ? '<div class="row">'+
           '<div class="f"><label>Slug</label><input id="slug" type="text" value="'+esc(m.slug||'')+'"></div>'+
@@ -391,7 +398,7 @@ function renderEditor(){
 
   byId('editor').innerHTML=html;
 
-  var fields=['alt','createdAt','year','medium','tags','desc','featured','disabled_'];
+  var fields=['alt','createdAt','year','medium','tone','tags','desc','featured','disabled_'];
   if(isSeed) fields=fields.concat(['src','slug','width','height']);
   fields.forEach(function(id){
     var el=byId(id); if(!el) return;
@@ -405,7 +412,7 @@ async function saveMeta(){
   setStatus('ss','Saving\u2026','warn');
   var tags=byId('tags').value.split(',').map(function(t){return t.trim();}).filter(Boolean);
   var payload={
-    requiredMeta:{year:Number(byId('year').value)||new Date().getFullYear(),medium:byId('medium').value||'digital'},
+    requiredMeta:{year:Number(byId('year').value)||new Date().getFullYear(),medium:byId('medium').value||'digital',tone:byId('tone').value||'color'},
     alt:(byId('alt').value||'').trim(),
     createdAt:byId('createdAt').value,
     tags:tags,

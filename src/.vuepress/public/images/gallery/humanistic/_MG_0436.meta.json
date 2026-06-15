@@ -1,7 +1,8 @@
 {
   "requiredMeta": {
     "year": 2022,
-    "medium": "film"
+    "medium": "film",
+    "tone": "bw"
   },
   "alt": "MG 0436",
   "createdAt": "2022-09-02",
