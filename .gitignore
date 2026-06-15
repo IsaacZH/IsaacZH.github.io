@@ -2,3 +2,6 @@
 node_modules/
 src/.vuepress/.cache/
 src/.vuepress/.temp/
+src/.vuepress/dist/
+src/.vuepress/data/gallery.generated.ts
+GALLERY_MANAGEMENT_LOCAL.md

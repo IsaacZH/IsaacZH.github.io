@@ -48,6 +48,7 @@
                     :alt="item.alt"
                     loading="lazy"
                     decoding="async"
+                    @load="rememberImageSize(item.id, $event)"
                 />
                 <span class="chip">{{ item.category }}</span>
             </button>
@@ -78,6 +79,7 @@ const HASH_PREFIX = "#/gallery/";
 const lightbox = ref(null);
 const pendingOpenIndex = ref(null);
 const skipHashClearOnce = ref(false);
+const imageSizeById = ref({});
 
 const categories = computed(() => {
     const values = new Set(items.map((item) => item.category));
@@ -174,20 +176,77 @@ function clearHash() {
 }
 
 function toSlide(item) {
+    const rememberedSize = imageSizeById.value[item.id];
+    const width = rememberedSize?.width || item.width || 1600;
+    const height = rememberedSize?.height || item.height || 1067;
+
     return {
         src: item.src,
         msrc: item.thumbnailSrc || item.src,
         alt: item.alt,
-        width: item.width || 1600,
-        height: item.height || 1067,
+        width,
+        height,
+        w: width,
+        h: height,
     };
+}
+
+function rememberImageSize(id, event) {
+    const target = event?.target;
+    if (!(target instanceof HTMLImageElement)) {
+        return;
+    }
+
+    const width = target.naturalWidth;
+    const height = target.naturalHeight;
+    if (!width || !height) {
+        return;
+    }
+
+    imageSizeById.value = {
+        ...imageSizeById.value,
+        [id]: { width, height },
+    };
+}
+
+function ensureImageSize(item) {
+    if (imageSizeById.value[item.id]) {
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+        if (typeof window === "undefined") {
+            resolve(undefined);
+            return;
+        }
+
+        const probe = new Image();
+        probe.onload = () => {
+            imageSizeById.value = {
+                ...imageSizeById.value,
+                [item.id]: {
+                    width: probe.naturalWidth || item.width || 1600,
+                    height: probe.naturalHeight || item.height || 1067,
+                },
+            };
+            resolve(undefined);
+        };
+        probe.onerror = () => resolve(undefined);
+        probe.src = item.src;
+    });
 }
 
 function initLightbox() {
     const instance = new PhotoSwipeLightbox({
-        dataSource: () => visibleItems.value.map(toSlide),
         pswpModule: () => import("photoswipe"),
         wheelToZoom: true,
+        imageClickAction: "zoom",
+        tapAction: "zoom",
+        doubleTapAction: "zoom",
+        clickToCloseNonZoomable: false,
+        initialZoomLevel: "fit",
+        secondaryZoomLevel: 2,
+        maxZoomLevel: 4,
     });
 
     instance.on("change", () => {
@@ -257,13 +316,24 @@ function loadMore() {
     visibleCount.value += pageSize;
 }
 
-function openPreview(index) {
+async function openPreview(index) {
     if (!lightbox.value) {
         return;
     }
+
+    const targetItem = visibleItems.value[index];
+    if (targetItem) {
+        await ensureImageSize(targetItem);
+    }
+
+    const dataSource = visibleItems.value.map(toSlide);
+    if (dataSource.length === 0 || index >= dataSource.length) {
+        return;
+    }
+
     syncHash(index);
     skipHashClearOnce.value = true;
-    lightbox.value.loadAndOpen(index);
+    lightbox.value.loadAndOpen(index, dataSource);
 }
 </script>
 
