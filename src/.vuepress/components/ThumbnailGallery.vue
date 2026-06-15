@@ -1,16 +1,35 @@
 <template>
     <section class="gallery-shell">
         <div class="toolbar">
-            <div class="categories" role="tablist" aria-label="Image categories">
+            <div class="categories" role="tablist" aria-label="Image tags">
                 <button
-                    v-for="category in categories"
-                    :key="category"
-                    :class="['category-button', { active: selectedCategory === category }]"
+                    :class="['category-button', { active: selectedTags.length === 0 }]"
                     role="tab"
-                    :aria-selected="selectedCategory === category"
-                    @click="selectedCategory = category"
+                    :aria-selected="selectedTags.length === 0"
+                    @click="clearTagFilters"
                 >
-                    {{ category }}
+                    All
+                </button>
+                <button
+                    v-for="option in visibleTagOptions"
+                    :key="option.tag"
+                    :class="['category-button', { active: selectedTags.includes(option.tag) }]"
+                    role="tab"
+                    :aria-selected="selectedTags.includes(option.tag)"
+                    @click="toggleTag(option.tag)"
+                >
+                    {{ option.tag }}
+                    <span class="tag-count">{{ option.count }}</span>
+                </button>
+
+                <button
+                    v-if="tagFilters.length > maxVisibleTags"
+                    class="category-button ghost"
+                    role="tab"
+                    :aria-selected="tagsExpanded"
+                    @click="tagsExpanded = !tagsExpanded"
+                >
+                    {{ tagsExpanded ? 'Less' : `More (${tagFilters.length - maxVisibleTags})` }}
                 </button>
             </div>
 
@@ -19,9 +38,20 @@
                     v-model.trim="searchQuery"
                     type="search"
                     class="search-input"
-                    placeholder="Search by title, tag, or category"
+                    placeholder="Search by title, tag, or facet"
                     aria-label="Search images"
                 />
+                <select v-model="selectedYear" class="sort-select" aria-label="Filter by year">
+                    <option value="All">All years</option>
+                    <option v-for="year in yearFilters" :key="year" :value="String(year)">
+                        {{ year }}
+                    </option>
+                </select>
+                <select v-model="selectedMedium" class="sort-select" aria-label="Filter by medium">
+                    <option value="all">All medium</option>
+                    <option value="digital">Digital</option>
+                    <option value="film">Film</option>
+                </select>
                 <select v-model="sortBy" class="sort-select" aria-label="Sort images">
                     <option value="newest">Newest</option>
                     <option value="oldest">Oldest</option>
@@ -33,6 +63,9 @@
         <div class="result-meta">
             <span>{{ filteredItems.length }} photos</span>
             <span v-if="searchQuery">for "{{ searchQuery }}"</span>
+            <span v-if="selectedTags.length">tags {{ selectedTags.join(', ') }}</span>
+            <span v-if="selectedYear !== 'All'">year {{ selectedYear }}</span>
+            <span v-if="selectedMedium !== 'all'">{{ selectedMedium }}</span>
         </div>
 
         <div class="gallery-grid">
@@ -50,7 +83,7 @@
                     decoding="async"
                     @load="rememberImageSize(item.id, $event)"
                 />
-                <span class="chip">{{ item.category }}</span>
+                <span class="chip">{{ item.requiredMeta.year }} · {{ item.requiredMeta.medium }}</span>
             </button>
         </div>
 
@@ -68,11 +101,15 @@ import { galleryConfig, galleryItems } from "../data/gallery-data";
 
 const items = galleryItems;
 
-const selectedCategory = ref("All");
+const selectedTags = ref([]);
+const selectedYear = ref("All");
+const selectedMedium = ref("all");
 const searchQuery = ref("");
 const sortBy = ref("newest");
 const pageSize = galleryConfig.defaultPageSize;
 const visibleCount = ref(pageSize);
+const maxVisibleTags = 12;
+const tagsExpanded = ref(false);
 
 const HASH_PREFIX = "#/gallery/";
 
@@ -81,27 +118,66 @@ const pendingOpenIndex = ref(null);
 const skipHashClearOnce = ref(false);
 const imageSizeById = ref({});
 
-const categories = computed(() => {
-    const values = new Set(items.map((item) => item.category));
-    return ["All", ...Array.from(values)];
+const tagFilters = computed(() => {
+    const tagCountMap = new Map();
+    for (const item of items) {
+        for (const tag of item.tags) {
+            tagCountMap.set(tag, (tagCountMap.get(tag) || 0) + 1);
+        }
+    }
+
+    return Array.from(tagCountMap.entries())
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+});
+
+const visibleTagOptions = computed(() => {
+    if (tagsExpanded.value) {
+        return tagFilters.value;
+    }
+    return tagFilters.value.slice(0, maxVisibleTags);
+});
+
+const yearFilters = computed(() => {
+    const values = new Set(items.map((item) => item.requiredMeta.year));
+    return Array.from(values).sort((a, b) => b - a);
 });
 
 const filteredItems = computed(() => {
     const query = searchQuery.value.toLowerCase();
 
-    let list = items.filter((item) => {
-        const byCategory =
-            selectedCategory.value === "All" || item.category === selectedCategory.value;
-
-        if (!query) {
-            return byCategory;
+    const flattenFacets = (facets) => {
+        if (!facets || typeof facets !== "object") {
+            return "";
         }
 
-        const searchable = [item.alt, item.category, item.tags.join(" ")]
+        return Object.entries(facets)
+            .flatMap(([group, values]) => [group, ...(Array.isArray(values) ? values : String(values).split(","))])
+            .join(" ")
+            .toLowerCase();
+    };
+
+    let list = items.filter((item) => {
+        const byTag =
+            selectedTags.value.length === 0 || selectedTags.value.some((tag) => item.tags.includes(tag));
+        const byYear = selectedYear.value === "All" || String(item.requiredMeta.year) === selectedYear.value;
+        const byMedium = selectedMedium.value === "all" || item.requiredMeta.medium === selectedMedium.value;
+
+        if (!query) {
+            return byTag && byYear && byMedium;
+        }
+
+        const searchable = [
+            item.alt,
+            item.requiredMeta.year,
+            item.requiredMeta.medium,
+            item.tags.join(" "),
+            flattenFacets(item.facets),
+        ]
             .join(" ")
             .toLowerCase();
 
-        return byCategory && searchable.includes(query);
+        return byTag && byYear && byMedium && searchable.includes(query);
     });
 
     list = [...list].sort((a, b) => {
@@ -125,10 +201,23 @@ const filteredItems = computed(() => {
 const visibleItems = computed(() => filteredItems.value.slice(0, visibleCount.value));
 const hasMore = computed(() => visibleItems.value.length < filteredItems.value.length);
 
-watch([selectedCategory, searchQuery, sortBy], () => {
+watch([selectedTags, selectedYear, selectedMedium, searchQuery, sortBy], () => {
     visibleCount.value = pageSize;
     tryRestoreFromHash();
 });
+
+function toggleTag(tag) {
+    if (selectedTags.value.includes(tag)) {
+        selectedTags.value = selectedTags.value.filter((item) => item !== tag);
+        return;
+    }
+
+    selectedTags.value = [...selectedTags.value, tag];
+}
+
+function clearTagFilters() {
+    selectedTags.value = [];
+}
 
 watch(visibleItems, () => {
     if (pendingOpenIndex.value !== null && pendingOpenIndex.value < visibleItems.value.length) {
@@ -376,6 +465,16 @@ async function openPreview(index) {
 
 .category-button.active {
     border-color: rgba(153, 153, 153, 0.8);
+}
+
+.category-button.ghost {
+    opacity: 0.9;
+}
+
+.tag-count {
+    margin-left: 6px;
+    font-size: 11px;
+    opacity: 0.75;
 }
 
 .controls {
