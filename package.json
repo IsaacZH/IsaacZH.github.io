@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "gallery:sync": "node scripts/generate-gallery-data.mjs",
+    "gallery:init-meta": "node scripts/init-gallery-meta.mjs",
+    "gallery:admin": "node scripts/gallery-admin.mjs",
     "docs:build": "npm run gallery:sync && vuepress-vite build src",
     "docs:clean-dev": "vuepress-vite dev src --clean-cache",
     "docs:dev": "npm run gallery:sync && vuepress-vite dev src",

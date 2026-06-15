@@ -88,7 +88,7 @@
         </div>
 
         <div v-if="hasMore" class="load-more-wrap">
-            <button type="button" class="load-more" @click="loadMore">Load more</button>
+            <button type="button" class="load-more" @click.stop.prevent="loadMore">Load more</button>
         </div>
     </section>
 </template>
@@ -115,7 +115,6 @@ const HASH_PREFIX = "#/gallery/";
 
 const lightbox = ref(null);
 const pendingOpenIndex = ref(null);
-const skipHashClearOnce = ref(false);
 const imageSizeById = ref({});
 
 const tagFilters = computed(() => {
@@ -256,11 +255,6 @@ function clearHash() {
         return;
     }
 
-    if (skipHashClearOnce.value) {
-        skipHashClearOnce.value = false;
-        return;
-    }
-
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
 }
 
@@ -360,7 +354,6 @@ function handleHashChange() {
     }
 
     if (parsed < visibleItems.value.length) {
-        skipHashClearOnce.value = true;
         openPreview(parsed);
         return;
     }
@@ -421,7 +414,6 @@ async function openPreview(index) {
     }
 
     syncHash(index);
-    skipHashClearOnce.value = true;
     lightbox.value.loadAndOpen(index, dataSource);
 }
 </script>
