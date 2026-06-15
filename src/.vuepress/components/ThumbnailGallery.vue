@@ -56,113 +56,28 @@
         <div v-if="hasMore" class="load-more-wrap">
             <button type="button" class="load-more" @click="loadMore">Load more</button>
         </div>
-
-        <div v-if="isPreviewOpen && currentItem" class="lightbox" @click.self="closePreview">
-            <button type="button" class="nav prev" aria-label="Previous" @click="prevItem">‹</button>
-
-            <figure class="lightbox-body">
-                <img :src="currentItem.src" :alt="currentItem.alt" />
-                <figcaption>
-                    <h3>{{ currentItem.alt }}</h3>
-                    <p>{{ currentItem.category }} · {{ formatDate(currentItem.createdAt) }}</p>
-                </figcaption>
-
-                <div v-if="relatedItems.length" class="related-strip">
-                    <button
-                        v-for="item in relatedItems"
-                        :key="item.id"
-                        type="button"
-                        class="related-item"
-                        @click="jumpToItem(item.id)"
-                    >
-                        <img :src="item.thumbnailSrc || item.src" :alt="item.alt" loading="lazy" />
-                    </button>
-                </div>
-            </figure>
-
-            <button type="button" class="nav next" aria-label="Next" @click="nextItem">›</button>
-            <button type="button" class="close" aria-label="Close" @click="closePreview">✕</button>
-        </div>
     </section>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import PhotoSwipeLightbox from "photoswipe/lightbox";
+import "photoswipe/style.css";
+import { galleryConfig, galleryItems } from "../data/gallery-data";
 
-const rawItems = [
-    {
-        src: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/000022.JPG",
-        alt: "Photo 1",
-        category: "Portrait",
-        tags: ["people", "moody"],
-        createdAt: "2024-01-09",
-    },
-    {
-        src: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/_MG_0216-Pano.jpg",
-        alt: "Photo 2",
-        category: "Urban",
-        tags: ["city", "night"],
-        createdAt: "2024-02-04",
-    },
-    {
-        src: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/202406241328148.jpg",
-        alt: "Photo 3",
-        category: "Landscape",
-        tags: ["nature", "sunset"],
-        createdAt: "2024-06-24",
-    },
-    {
-        src: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/202408242130419.jpg",
-        alt: "Photo 4",
-        category: "Landscape",
-        tags: ["mountain", "travel"],
-        createdAt: "2024-08-24",
-    },
-    {
-        src: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/202408242130418.jpg",
-        alt: "Photo 5",
-        category: "Landscape",
-        tags: ["cloud", "travel"],
-        createdAt: "2024-08-24",
-    },
-    {
-        src: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/202408242130416.jpg",
-        alt: "Photo 6",
-        category: "Landscape",
-        tags: ["golden-hour", "nature"],
-        createdAt: "2024-08-24",
-    },
-    {
-        src: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/202408242135360.jpg",
-        alt: "Photo 7",
-        category: "Landscape",
-        tags: ["valley", "hike"],
-        createdAt: "2024-08-24",
-    },
-    {
-        src: "https://raw.githubusercontent.com/IsaacZH/FigureBed/master/202408242135361.jpg",
-        alt: "Photo 8",
-        category: "Landscape",
-        tags: ["fog", "hike"],
-        createdAt: "2024-08-24",
-    },
-];
-
-const items = rawItems.map((item, index) => ({
-    id: `${index}-${item.src}`,
-    ...item,
-    createdAt: item.createdAt || "1970-01-01",
-    tags: item.tags || [],
-}));
+const items = galleryItems;
 
 const selectedCategory = ref("All");
 const searchQuery = ref("");
 const sortBy = ref("newest");
-const pageSize = 6;
+const pageSize = galleryConfig.defaultPageSize;
 const visibleCount = ref(pageSize);
 
-const isPreviewOpen = ref(false);
-const currentIndex = ref(0);
+const HASH_PREFIX = "#/gallery/";
+
+const lightbox = ref(null);
+const pendingOpenIndex = ref(null);
+const skipHashClearOnce = ref(false);
 
 const categories = computed(() => {
     const values = new Set(items.map((item) => item.category));
@@ -208,66 +123,133 @@ const filteredItems = computed(() => {
 const visibleItems = computed(() => filteredItems.value.slice(0, visibleCount.value));
 const hasMore = computed(() => visibleItems.value.length < filteredItems.value.length);
 
-const currentItem = computed(() => visibleItems.value[currentIndex.value] || null);
-
-const relatedItems = computed(() => {
-    if (!currentItem.value) {
-        return [];
-    }
-
-    return visibleItems.value
-        .filter((item) => item.id !== currentItem.value.id)
-        .map((item) => {
-            const sameCategory = item.category === currentItem.value.category ? 2 : 0;
-            const sharedTags = item.tags.filter((tag) => currentItem.value.tags.includes(tag)).length;
-            return { item, score: sameCategory + sharedTags };
-        })
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 4)
-        .map((entry) => entry.item);
-});
-
 watch([selectedCategory, searchQuery, sortBy], () => {
     visibleCount.value = pageSize;
-    currentIndex.value = 0;
+    tryRestoreFromHash();
 });
 
-watch(isPreviewOpen, (open) => {
-    if (typeof document !== "undefined") {
-        document.body.style.overflow = open ? "hidden" : "";
+watch(visibleItems, () => {
+    if (pendingOpenIndex.value !== null && pendingOpenIndex.value < visibleItems.value.length) {
+        nextTick(() => {
+            openPreview(pendingOpenIndex.value);
+            pendingOpenIndex.value = null;
+        });
     }
 });
 
-const handleKeydown = (event) => {
-    if (!isPreviewOpen.value) {
+function parseHashIndex() {
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    if (!window.location.hash.startsWith(HASH_PREFIX)) {
+        return null;
+    }
+
+    const value = Number.parseInt(window.location.hash.slice(HASH_PREFIX.length), 10);
+    if (Number.isNaN(value) || value < 0) {
+        return null;
+    }
+    return value;
+}
+
+function syncHash(index) {
+    if (typeof window === "undefined") {
+        return;
+    }
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${HASH_PREFIX}${index}`);
+}
+
+function clearHash() {
+    if (typeof window === "undefined") {
         return;
     }
 
-    if (event.key === "Escape") {
-        closePreview();
+    if (skipHashClearOnce.value) {
+        skipHashClearOnce.value = false;
+        return;
     }
 
-    if (event.key === "ArrowLeft") {
-        prevItem();
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+}
+
+function toSlide(item) {
+    return {
+        src: item.src,
+        msrc: item.thumbnailSrc || item.src,
+        alt: item.alt,
+        width: item.width || 1600,
+        height: item.height || 1067,
+    };
+}
+
+function initLightbox() {
+    const instance = new PhotoSwipeLightbox({
+        dataSource: () => visibleItems.value.map(toSlide),
+        pswpModule: () => import("photoswipe"),
+        wheelToZoom: true,
+    });
+
+    instance.on("change", () => {
+        const curr = instance.pswp?.currIndex;
+        if (typeof curr === "number") {
+            syncHash(curr);
+        }
+    });
+
+    instance.on("close", () => {
+        clearHash();
+    });
+
+    instance.init();
+    lightbox.value = instance;
+}
+
+function handleHashChange() {
+    const parsed = parseHashIndex();
+    if (parsed === null) {
+        return;
     }
 
-    if (event.key === "ArrowRight") {
-        nextItem();
+    if (parsed < visibleItems.value.length) {
+        skipHashClearOnce.value = true;
+        openPreview(parsed);
+        return;
     }
-};
+
+    pendingOpenIndex.value = parsed;
+}
+
+function tryRestoreFromHash() {
+    const parsed = parseHashIndex();
+    if (parsed === null) {
+        pendingOpenIndex.value = null;
+        return;
+    }
+
+    pendingOpenIndex.value = parsed;
+}
 
 onMounted(() => {
+    initLightbox();
+    tryRestoreFromHash();
+
     if (typeof window !== "undefined") {
-        window.addEventListener("keydown", handleKeydown);
+        window.addEventListener("hashchange", handleHashChange);
+    }
+
+    if (pendingOpenIndex.value !== null) {
+        nextTick(() => {
+            handleHashChange();
+        });
     }
 });
 
 onBeforeUnmount(() => {
+    lightbox.value?.destroy();
+
     if (typeof window !== "undefined") {
-        window.removeEventListener("keydown", handleKeydown);
-    }
-    if (typeof document !== "undefined") {
-        document.body.style.overflow = "";
+        window.removeEventListener("hashchange", handleHashChange);
     }
 });
 
@@ -276,47 +258,12 @@ function loadMore() {
 }
 
 function openPreview(index) {
-    currentIndex.value = index;
-    isPreviewOpen.value = true;
-}
-
-function closePreview() {
-    isPreviewOpen.value = false;
-}
-
-function prevItem() {
-    const total = visibleItems.value.length;
-    if (!total) {
+    if (!lightbox.value) {
         return;
     }
-    currentIndex.value = (currentIndex.value - 1 + total) % total;
-}
-
-function nextItem() {
-    const total = visibleItems.value.length;
-    if (!total) {
-        return;
-    }
-    currentIndex.value = (currentIndex.value + 1) % total;
-}
-
-function jumpToItem(id) {
-    const targetIndex = visibleItems.value.findIndex((item) => item.id === id);
-    if (targetIndex >= 0) {
-        currentIndex.value = targetIndex;
-    }
-}
-
-function formatDate(value) {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-        return "Unknown date";
-    }
-    return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-    });
+    syncHash(index);
+    skipHashClearOnce.value = true;
+    lightbox.value.loadAndOpen(index);
 }
 </script>
 
@@ -442,97 +389,6 @@ function formatDate(value) {
     cursor: pointer;
 }
 
-.lightbox {
-    position: fixed;
-    inset: 0;
-    z-index: 999;
-    background: rgba(0, 0, 0, 0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 18px;
-}
-
-.lightbox-body {
-    max-width: min(1100px, 90vw);
-    max-height: 90vh;
-    margin: 0;
-}
-
-.lightbox-body img {
-    max-width: 100%;
-    max-height: 74vh;
-    display: block;
-    margin: 0 auto;
-    border-radius: 10px;
-}
-
-.lightbox-body figcaption {
-    color: #d8d8d8;
-    text-align: center;
-    margin-top: 10px;
-}
-
-.lightbox-body h3 {
-    margin: 0;
-    font-size: 18px;
-}
-
-.lightbox-body p {
-    margin: 4px 0 0;
-    color: #aaaaaa;
-}
-
-.related-strip {
-    margin-top: 12px;
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.related-item {
-    width: 72px;
-    height: 72px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 6px;
-    padding: 0;
-    overflow: hidden;
-    background: transparent;
-    cursor: pointer;
-}
-
-.related-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.close,
-.nav {
-    position: absolute;
-    border: 0;
-    background: rgba(255, 255, 255, 0.1);
-    color: #f5f5f5;
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    cursor: pointer;
-}
-
-.close {
-    top: 16px;
-    right: 16px;
-}
-
-.nav.prev {
-    left: 24px;
-}
-
-.nav.next {
-    right: 24px;
-}
-
 @media (max-width: 960px) {
     .gallery-grid {
         column-count: 2;
@@ -545,14 +401,6 @@ function formatDate(value) {
     .search-input {
         min-width: 0;
         flex: 1;
-    }
-
-    .nav.prev {
-        left: 10px;
-    }
-
-    .nav.next {
-        right: 10px;
     }
 }
 
